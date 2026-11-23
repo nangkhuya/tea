@@ -1,0 +1,6 @@
+{
+  "name": "ZEN TEA HOUSE",
+  "description": "ZEN TEA HOUSE — The Art of Tea. The Beauty of Stillness. Không gian trà thất Á Đông trực tuyến hướng đến sự tĩnh tại, kết nối và nghệ thuật thưởng trà.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
