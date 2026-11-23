@@ -55,24 +55,43 @@ export const ENVIRONMENT_OPTIONS: Array<{
 ];
 
 export const DEFAULT_AVATAR_CONFIG: AvatarConfig = {
-  schemaVersion: 2,
-  characterId: 'demo-avatar-001',
-  appearance: {
-    presentation: 'neutral',
-    skinTone: 'warm-beige',
-    facePreset: 'soft',
-  },
+  schemaVersion: 3,
+  characterId: 'zen-humanoid-neutral',
+  genderPresentation: 'neutral',
   body: {
     heightScale: 1.0,
+    buildPreset: 'average',
+    shoulderWidth: 1.0,
+    silhouetteBalance: 0.0,
     posture: 'upright-calm',
   },
-  hairstyle: 'low-bun',
-  hairColor: 'espresso',
-  clothing: 'natural-linen',
-  accessories: ['wooden-hairpin'],
-  colors: {
-    primary: 'warm-ivory',
-    accent: 'moss-green',
+  face: {
+    faceShape: 'oval',
+    jawline: 0.0,
+    eyeShape: 'almond',
+    eyebrowShape: 'natural',
+    noseShape: 'balanced',
+    lipShape: 'natural',
+    expression: 'serene',
+  },
+  skin: {
+    tone: 'warm-beige',
+  },
+  hairstyle: 'minimal-tied',
+  hairColor: 'natural-black',
+  clothing: {
+    style: 'linen-samue',
+    material: 'linen',
+  },
+  clothingColors: {
+    primary: 'ivory',
+    secondary: 'moss-green',
+    sash: 'walnut',
+  },
+  accessories: ['wooden-bracelet'],
+  animationPreferences: {
+    defaultPose: 'idle-standing',
+    idleBreathing: true,
   },
   updatedAt: '2026-11-22T00:00:00.000Z',
 };

@@ -17,35 +17,24 @@ export interface UserPreferences {
   allowRoomInvitations: boolean;
 }
 
-export type AvatarAttireStyle = 'hanfu-scholar' | 'zen-yukata' | 'natural-linen' | 'tea-robe' | 'modern-linen';
-export type AvatarColorTone = 'warm-ivory' | 'moss-green' | 'muted-indigo' | 'walnut-earth';
-export type AvatarHairStyle = 'low-bun' | 'shoulder-natural' | 'short-neat' | 'pinned-classic';
-export type AvatarFacePreset = 'soft' | 'oval' | 'defined';
-export type AvatarHairColor = 'espresso' | 'chestnut' | 'silver';
-export type AvatarAccessory = 'wooden-hairpin' | 'tea-beads' | 'round-glasses';
+import type {
+  AvatarAccessoryId,
+  AvatarClothingStyleId,
+  AvatarConfigV3,
+  AvatarHairColorId,
+  AvatarHairStyleId,
+  AvatarPaletteColorId,
+  FaceShapeId,
+} from '../features/avatar/types/avatarTypes';
 
-export interface AvatarConfig {
-  schemaVersion: 2;
-  characterId: string;
-  appearance: {
-    presentation: 'feminine' | 'masculine' | 'neutral';
-    skinTone: 'porcelain' | 'warm-beige' | 'amber-olive' | 'deep-bronze';
-    facePreset: AvatarFacePreset;
-  };
-  body: {
-    heightScale: number;
-    posture: 'upright-calm' | 'relaxed-tea';
-  };
-  hairstyle: AvatarHairStyle;
-  hairColor: AvatarHairColor;
-  clothing: AvatarAttireStyle;
-  accessories: AvatarAccessory[];
-  colors: {
-    primary: AvatarColorTone;
-    accent: AvatarColorTone;
-  };
-  updatedAt: string;
-}
+export type AvatarAttireStyle = AvatarClothingStyleId;
+export type AvatarColorTone = AvatarPaletteColorId;
+export type AvatarHairStyle = AvatarHairStyleId;
+export type AvatarFacePreset = FaceShapeId;
+export type AvatarHairColor = AvatarHairColorId;
+export type AvatarAccessory = AvatarAccessoryId;
+
+export type AvatarConfig = AvatarConfigV3;
 
 export interface UserProfile {
   uid: string;

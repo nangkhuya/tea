@@ -1,5 +1,17 @@
 import { DEFAULT_AVATAR_CONFIG, ENVIRONMENT_OPTIONS, STORAGE_KEYS } from '../config/constants';
 import { DEFAULT_USER_PREFERENCES, DEMO_TEA_ROOMS, DEMO_USER_PROFILE } from '../data/demoData';
+import {
+  ACCESSORY_REGISTRY,
+  ANIMATION_REGISTRY,
+  BASE_CHARACTER_MODELS,
+  CLOTHING_REGISTRY,
+  HAIRSTYLE_REGISTRY,
+} from '../features/avatar/assets/avatarRegistry';
+import { AVATAR_PRESETS } from '../features/avatar/presets/avatarPresets';
+import {
+  migrateAvatarConfig,
+  validateAvatarConfig,
+} from '../features/avatar/services/avatarValidation';
 import type {
   AvatarConfig,
   CreateRoomInput,
@@ -10,6 +22,7 @@ import type {
 } from '../types/domain';
 import { clampRoomCapacity } from '../utils/roomFilters';
 import type {
+  AvailableAvatarAssetsSnapshot,
   IAuthService,
   IAvatarService,
   ISettingsService,
@@ -149,59 +162,107 @@ export class DemoTeaRoomService implements ITeaRoomService {
 }
 
 function avatarStorageKey(uid: string): string {
+  return `zen_tea_house_avatar_v3_${encodeURIComponent(uid || 'demo-guest-001')}`;
+}
+
+function legacyV2AvatarStorageKey(uid: string): string {
   return `zen_tea_house_avatar_v2_${encodeURIComponent(uid || 'demo')}`;
 }
 
-function migrateAvatarConfig(input: Partial<AvatarConfig> | null | undefined): AvatarConfig {
-  const value = input ?? {};
-  return {
-    ...DEFAULT_AVATAR_CONFIG,
-    ...value,
-    schemaVersion: 2,
-    appearance: { ...DEFAULT_AVATAR_CONFIG.appearance, ...value.appearance },
-    body: { ...DEFAULT_AVATAR_CONFIG.body, ...value.body },
-    colors: { ...DEFAULT_AVATAR_CONFIG.colors, ...value.colors },
-    accessories: Array.isArray(value.accessories) ? value.accessories : DEFAULT_AVATAR_CONFIG.accessories,
-    updatedAt: value.updatedAt ?? DEFAULT_AVATAR_CONFIG.updatedAt,
-  };
-}
-
 export class LocalAvatarService implements IAvatarService {
-  async getAvatarConfig(uid: string): Promise<AvatarConfig> {
+  async getAvatar(uid: string): Promise<AvatarConfig> {
     const key = avatarStorageKey(uid);
-    const stored = readStorage<Partial<AvatarConfig> | null>(key, null);
-    if (stored) return migrateAvatarConfig(stored);
-    // One-time migration from the Phase 01 shared demo key into this profile's own slot.
-    const legacy = readStorage<Partial<AvatarConfig> | null>(STORAGE_KEYS.AVATAR, null);
-    if (legacy) {
-      const migrated = migrateAvatarConfig(legacy);
+    const stored = readStorage<unknown>(key, null);
+    if (stored) {
+      return migrateAvatarConfig(stored);
+    }
+
+    // One-time migration from v2 or Phase 01 shared demo slot.
+    const legacyV2 = readStorage<unknown>(legacyV2AvatarStorageKey(uid), null);
+    if (legacyV2) {
+      const migrated = migrateAvatarConfig(legacyV2);
       writeStorage(key, migrated);
       return migrated;
     }
+
+    const legacyV1 = readStorage<unknown>(STORAGE_KEYS.AVATAR, null);
+    if (legacyV1) {
+      const migrated = migrateAvatarConfig(legacyV1);
+      writeStorage(key, migrated);
+      return migrated;
+    }
+
     return { ...DEFAULT_AVATAR_CONFIG };
   }
 
-  async saveAvatarConfig(uid: string, config: AvatarConfig): Promise<AvatarConfig> {
+  async saveAvatar(uid: string, config: AvatarConfig, actorUid?: string): Promise<AvatarConfig> {
+    const normalizedUid = uid.trim();
+    if (!normalizedUid) {
+      throw new Error('Missing user ID for avatar save.');
+    }
+    if (actorUid && actorUid.trim() !== normalizedUid) {
+      throw new Error('Ownership verification failed: cannot overwrite another user avatar.');
+    }
+
+    const validation = validateAvatarConfig(config);
+    if (!validation.valid) {
+      throw new Error(`Invalid avatar configuration: ${validation.errors.join(' ')}`);
+    }
+
     const next: AvatarConfig = {
-      ...config,
-      schemaVersion: 2,
+      ...validation.sanitized,
+      schemaVersion: 3,
       updatedAt: new Date().toISOString(),
     };
-    writeStorage(avatarStorageKey(uid), next);
+    writeStorage(avatarStorageKey(normalizedUid), next);
     return next;
   }
 
-  async resetDemoAvatar(uid = 'demo-visitor'): Promise<AvatarConfig> {
+  validateAvatar(config: unknown) {
+    return validateAvatarConfig(config);
+  }
+
+  getAvailableAssets(): AvailableAvatarAssetsSnapshot {
+    return {
+      baseModels: BASE_CHARACTER_MODELS,
+      hairstyles: HAIRSTYLE_REGISTRY,
+      clothing: CLOTHING_REGISTRY,
+      accessories: ACCESSORY_REGISTRY,
+      animations: ANIMATION_REGISTRY,
+    };
+  }
+
+  getAvatarPresets() {
+    return AVATAR_PRESETS;
+  }
+
+  async resetAvatar(uid = 'demo-guest-001', actorUid?: string): Promise<AvatarConfig> {
+    const normalizedUid = uid.trim() || 'demo-guest-001';
+    if (actorUid && actorUid.trim() !== normalizedUid) {
+      throw new Error('Ownership verification failed: cannot reset another user avatar.');
+    }
     const fresh: AvatarConfig = {
       ...DEFAULT_AVATAR_CONFIG,
       updatedAt: new Date().toISOString(),
     };
-    writeStorage(avatarStorageKey(uid), fresh);
+    writeStorage(avatarStorageKey(normalizedUid), fresh);
     return fresh;
+  }
+
+  async getAvatarConfig(uid: string): Promise<AvatarConfig> {
+    return this.getAvatar(uid);
+  }
+
+  async saveAvatarConfig(uid: string, config: AvatarConfig): Promise<AvatarConfig> {
+    return this.saveAvatar(uid, config, uid);
+  }
+
+  async resetDemoAvatar(uid = 'demo-guest-001'): Promise<AvatarConfig> {
+    return this.resetAvatar(uid, uid);
   }
 }
 
-/** Firebase can implement IAvatarService later without changing the Studio or store. */
+/** Firebase can implement IAvatarService in Phase 04 without changing the Studio or store. */
 
 export class LocalSettingsService implements ISettingsService {
   async getSettings(): Promise<UserPreferences> {
